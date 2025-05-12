@@ -2,7 +2,7 @@ import RPi.GPIO as GPIO
 from time import sleep
 
 # Define the GPIO pin connected to the relay IN pin
-RELAY_PIN = 17
+RELAY_PIN = 2
 
 # Setup
 GPIO.setmode(GPIO.BCM)          # Use BCM pin numbering
