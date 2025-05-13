@@ -1,18 +1,11 @@
 import cv2
 import numpy as np
-import RPi.GPIO as GPIO
 from time import sleep
 from gpiozero import OutputDevice
-
-GPIO.cleanup() 
+from flask import Flask, render_template, Response
 
 # GPIO Setup
 RELAY_PIN = 2
-GPIO.setwarnings(False)
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(RELAY_PIN, GPIO.OUT)
-
-# Set up relay control
 relay = OutputDevice(RELAY_PIN, active_high=False, initial_value=True)  # Active LOW triggers relay
 
 # Initialize USB Camera
@@ -28,25 +21,26 @@ sample_rate = 0.2  # Seconds between samples (adjust this for faster/slower samp
 start_time = sleep_time = 0
 previous_brightness = 0
 
+# Flask app setup
+app = Flask(__name__)
+
 # Function to detect flashlight blinking pattern
 def detect_blink_pattern(brightness_values):
     """ Simple method to detect blink pattern based on light intensity. """
-    # Simple pattern recognition based on brightness values. In real applications, more complex analysis can be done.
     average_brightness = np.mean(brightness_values)
     if average_brightness > brightness_threshold:
         return True  # Flash detected
     return False
 
-# Main loop to capture video and detect flashlight blinking
-try:
+# Generate frames for streaming to the browser
+def generate_frames():
     while True:
-        # Capture frame from the camera
         ret, frame = camera.read()
         if not ret:
             print("Failed to grab frame")
             break
 
-        # Convert frame to grayscale (simplifies the analysis)
+        # Convert frame to grayscale
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         # Compute the average brightness of the image
@@ -61,28 +55,32 @@ try:
 
         # If a blink pattern is detected
         if detect_blink_pattern(blink_pattern):
-            # Unlock solenoid (active low relay)
             relay.on()  # Unlock
             print("Solenoid is UNLOCKED")
         else:
-            # Lock solenoid (active low relay)
             relay.off()  # Lock
             print("Solenoid is LOCKED")
 
-        # Show the frame for debugging
-        cv2.imshow("Camera Feed", frame)
+        # Encode the frame in JPEG format for web streaming
+        ret, jpeg = cv2.imencode('.jpg', frame)
+        if not ret:
+            continue
+        frame = jpeg.tobytes()
 
-        # Wait for a key press to stop (or use 'q' for quit)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
 
-        sleep(sample_rate)  # Adjust the sleep time for your sample rate
+# Route to display the video feed in the browser
+@app.route('/')
+def index():
+    return render_template('index.html')  # This HTML file will display the video stream
 
-except KeyboardInterrupt:
-    print("Program interrupted. Cleaning up...")
+# Route to stream the video feed
+@app.route('/video_feed')
+def video_feed():
+    return Response(generate_frames(), 
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
 
-finally:
-    # Clean up and release the camera
-    GPIO.cleanup()
-    camera.release()
-    cv2.destroyAllWindows()
+# Run the Flask app
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
