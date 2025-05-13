@@ -9,17 +9,17 @@ GPIO.setwarnings(False)
 #This means we will refer to the GPIO
 #by the number after GPIO.
 GPIO.setmode(GPIO.BCM)
-#This sets up the GPIO 18 pin as an output pin
-GPIO.setup(18, GPIO.OUT)
+#This sets up the GPIO 2 pin as an output pin
+GPIO.setup(2, GPIO.OUT)
 
 while (True):    
     
     #This Turns Relay Off. Brings Voltage to Max GPIO can output ~3.3V
-    GPIO.output(18, 1)
+    GPIO.output(2, 1)
     #Wait 1 Seconds
-    sleep(1)
+    sleep(2)
     #Turns Relay On. Brings Voltage to Min GPIO can output ~0V.
-    GPIO.output(18, 0)
+    GPIO.output(2, 0)
     #Wait 1 Seconds
-    sleep(1)
+    sleep(2)
     
