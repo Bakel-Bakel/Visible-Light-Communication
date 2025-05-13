@@ -57,9 +57,11 @@ def generate_frames():
         if detect_blink_pattern(blink_pattern):
             relay.on()  # Unlock
             print("Solenoid is UNLOCKED")
+            relay.close() 
         else:
             relay.off()  # Lock
             print("Solenoid is LOCKED")
+            relay.close() 
 
         # Encode the frame in JPEG format for web streaming
         ret, jpeg = cv2.imencode('.jpg', frame)
