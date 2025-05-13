@@ -4,6 +4,8 @@ import RPi.GPIO as GPIO
 from time import sleep
 from gpiozero import OutputDevice
 
+GPIO.cleanup() 
+
 # GPIO Setup
 RELAY_PIN = 2
 GPIO.setwarnings(False)
